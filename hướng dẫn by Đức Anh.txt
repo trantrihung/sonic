@@ -1,0 +1,35 @@
+- cài ví bacpack, cài RPC cutom
+http://devnet.sonic.game
+
+- lệnh khởi tạo: npm install
+
+- lệnh chạy tx: node index.js
+điền các thông số như sau khi nhấn chạy:
+Select input method (0 for seed phrase, 1 for private key): 1
+How many random addresses do you want to generate? (default is 100): 101
+Minimum balance required for rent exemption: 0.00089088 SOL
+Enter the amount of SOL to send (default is 0.001 SOL): 0.0011
+Enter the delay between transactions in milliseconds (default is 1000ms): 1000
+
+- lệnh claim: node claim.js
+(đối vối claim box nhấn 1) ; khuyến khích claim tay, tool hay lỗi
+đối với mở bot nhấn 2
+checkin nhấn 3
+
+Lưu ý: cần faucet sol testnet trước khi chạy: https://faucet.sonic.game/#/
+
+ "cztGFFYVPWGx9bUBowMLDaHtKjEd359yCqh2LT5ZHga3BmapSkoe8sPuAh4wmUenqZ4Q6AMhpMUdHvUcbC75coH",
+  "3vFDmjSv3qCnpmzbJWePgseHT1itcymzs1eWgDCvohUUvEHhDnXZ52iCadCAyUcJ3TJiQokNbgnGsxmft4thxFcb",
+  "F9LDe22jtuxbSV5HYhoLKhxQh1GS1kuZFSVpRz8PrTkRHHBXkc9Mp3TuVHtRfc9FReHrCQmbSgnzVnkYvaidXBL",
+  "DUiKp7sLR65Whj5DhwQARCYYiFXMYaZxkdiorXtMUroKTbxj1tPd7tBmXueDApMuFc1HXpFw6AV3CUxPj3YiEeD",
+  "4SNKiuY7bNybsAwKVXZJtdDg7hfRqempDGB2FEVhVLhnbifJ2MdZ8GLgZ4CU9VaA5MCRMnTQxDEUY5pGDR9FwZkv",
+  "3eB6LbY9MgeJZhvqTHbndUSJo1LuX3FuwyjPVPr5p4nRTDQM668RDUCwiLBgsUFoMGPa7RHw3xhNgeavXDjF1n6F",
+  "61dERBptZJmAnXT8ECHGMfPFDea6DT5CyGHvCFUBxJzGiyipb3fFhzAsmreyZq3TFWjPeUTVMjaeERiZa3ji2sR4",
+  "5jcd3UswJmbXhoYwzHzv1XZfVsj1MwUYYioJJLfMEwmGgSGpB2WJzv8zE1QRnTu4k223wo2x7n2jdN4svW4vKHfQ",
+  "56rC6zwinPNa2SHDQLDrWLdGviZ2AkPNNCVKZWLQVTERmdxRw6DfLEvfV3zpA9SqJVRoHtRUok3E8CgTZ81WSEB1",
+  "5hHtYFYRH9BzKNUrhzjZdv1cLHib8krR3u73CjEX8y6c4xSd4QH1cfxDswAYWyrTP5z7oJG56kCzT5XnfDH5FwuL"
+
+  
+
+2
+3
