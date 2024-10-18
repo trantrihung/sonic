@@ -16,9 +16,10 @@ const {
 const bip39 = require("bip39");
 const { derivePath } = require("ed25519-hd-key");
 const base58 = require("bs58");
-
-const DEVNET_URL = "https://devnet.sonic.game/";
-const connection = new Connection(DEVNET_URL, "confirmed");
+const connection = new Connection(
+  "https://api.testnet.sonic.game",
+  "confirmed"
+);
 
 async function sendSol(fromKeypair, toPublicKey, amount) {
   const lamports = Math.floor(amount * LAMPORTS_PER_SOL); // Chuyển đổi số tiền gửi sang lamports
@@ -146,8 +147,8 @@ const sendTransactionWithRetry = async (fromKeypair, toPublicKey, amount) => {
         continue; // Bỏ qua địa chỉ này nếu không đủ SOL
       }
 
-      const minDelay = 1000; // 1 giây
-      const maxDelay = 3000; // 3 giây
+      const minDelay = 540; // 1 giây
+      const maxDelay = 2020; // 3 giây
       const delayBetweenTx =
         Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay; // Tạo ngẫu nhiên từ 1000 đến 3000 ms
       const toPublicKey = new PublicKey(address);

@@ -10,7 +10,7 @@ const { displayHeader } = require("./src/displayUtils");
 const readlineSync = require("readline-sync");
 const moment = require("moment");
 
-const PRIVATE_KEYS = JSON.parse(fs.readFileSync("privateKeys2.json", "utf-8"));
+const PRIVATE_KEYS = JSON.parse(fs.readFileSync("privateKeys3.json", "utf-8"));
 
 function getKeypair(privateKey) {
   const decodedPrivateKey = base58.decode(privateKey);

@@ -20,7 +20,7 @@ function getKeypair(privateKey) {
 async function getToken(privateKey) {
   try {
     const { data } = await axios({
-      url: "https://odyssey-api-beta.sonic.game/auth/sonic/challenge",
+      url: "https://odyssey-api-beta.sonic.game/testnet/auth/sonic/challenge",
       params: {
         wallet: getKeypair(privateKey).publicKey,
       },

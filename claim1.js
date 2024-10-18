@@ -10,9 +10,7 @@ const { displayHeader } = require("./src/displayUtils");
 const readlineSync = require("readline-sync");
 const moment = require("moment");
 
-const PRIVATE_KEYS = JSON.parse(
-  fs.readFileSync("privateKeysClaim1.json", "utf-8")
-);
+const PRIVATE_KEYS = JSON.parse(fs.readFileSync("privateKeys1.json", "utf-8"));
 
 function getKeypair(privateKey) {
   const decodedPrivateKey = base58.decode(privateKey);
@@ -81,6 +79,7 @@ async function doTransactions(tx, keypair, retries = 3) {
       await new Promise((res) => setTimeout(res, 1000));
       return doTransactions(tx, keypair, retries - 1);
     } else {
+      console.log(`Error in transaction: ${error}`.red);
       throw error;
     }
   }
@@ -116,6 +115,7 @@ async function openMysteryBox(token, keypair, retries = 3) {
       await new Promise((res) => setTimeout(res, 1000));
       return openMysteryBox(token, keypair, retries - 1);
     } else {
+      console.log(`Error opening mystery box: ${error}`.red);
       throw error;
     }
   }
@@ -125,32 +125,216 @@ async function processPrivateKey(privateKey) {
   try {
     const publicKey = getKeypair(privateKey).publicKey.toBase58();
     const token = await getToken(privateKey);
-    let profile = await getProfile(token); // Thay đổi const thành let
+    const profile = await getProfile(token);
 
     if (profile.wallet_balance > 0) {
       const balance = profile.wallet_balance / solana.LAMPORTS_PER_SOL;
       const ringBalance = profile.ring;
-      let availableBoxes = profile.ring_monitor;
-
-      console.log(`Hello ${publicKey}! Here are your details:`.green);
+      const availableBoxes = profile.ring_monitor;
+      console.log(
+        `Hello ${publicKey}! Welcome to our bot. Here are your details:`.green
+      );
       console.log(`Solana Balance: ${balance} SOL`.green);
       console.log(`Ring Balance: ${ringBalance}`.green);
       console.log(`Available Box(es): ${availableBoxes}`.green);
       console.log("");
 
-      if (availableBoxes === 0) {
-        console.log(`No boxes available to open for ${publicKey}.`.red);
-        return;
-      }
+      const method = readlineSync.question(
+        "Select input method (1 for claim box, 2 for open box, 3 for daily login): "
+      );
 
-      // Mở từng hộp có sẵn
+      if (method === "1") {
+        console.log(`[ ${moment().format("HH:mm:ss")} ] Please wait...`.yellow);
+        await dailyClaim(token);
+        console.log(
+          `[ ${moment().format("HH:mm:ss")} ] All tasks completed!`.cyan
+        );
+      } else if (method === "2") {
+        let totalClaim;
+        do {
+          totalClaim = readlineSync.question(
+            `How many boxes do you want to open? (Maximum is: ${availableBoxes}): `
+              .blue
+          );
+
+          if (totalClaim > availableBoxes) {
+            console.log(`You cannot open more boxes than available`.red);
+          } else if (isNaN(totalClaim)) {
+            console.log(`Please enter a valid number`.red);
+          } else {
+            console.log(
+              `[ ${moment().format("HH:mm:ss")} ] Please wait...`.yellow
+            );
+            for (let i = 0; i < totalClaim; i++) {
+              const openedBox = await openMysteryBox(
+                token,
+                getKeypair(privateKey)
+              );
+              if (openedBox.data.success) {
+                console.log(
+                  `[ ${moment().format(
+                    "HH:mm:ss"
+                  )} ] Box opened successfully! Status: ${
+                    openedBox.status
+                  } | Amount: ${openedBox.data.amount}`.green
+                );
+              }
+            }
+            console.log(
+              `[ ${moment().format("HH:mm:ss")} ] All tasks completed!`.cyan
+            );
+          }
+        } while (totalClaim > availableBoxes);
+      } else if (method === "3") {
+        console.log(`[ ${moment().format("HH:mm:ss")} ] Please wait...`.yellow);
+        const claimLogin = await dailyLogin(token, getKeypair(privateKey));
+        if (claimLogin) {
+          console.log(
+            `[ ${moment().format(
+              "HH:mm:ss"
+            )} ] Daily login has been success! Status: ${
+              claimLogin.status
+            } | Accumulative Days: ${claimLogin.data.accumulative_days}`.green
+          );
+        }
+        console.log(
+          `[ ${moment().format("HH:mm:ss")} ] All tasks completed!`.cyan
+        );
+      } else {
+        throw new Error("Invalid input method selected".red);
+      }
+    } else {
+      console.log(
+        `There might be errors if you don't have sufficient balance or the RPC is down. Please ensure your balance is sufficient and your connection is stable`
+          .red
+      );
+    }
+  } catch (error) {
+    console.log(`Error processing private key: ${error}`.red);
+  }
+  console.log("");
+}
+
+async function dailyClaim(token) {
+  let counter = 1;
+  let maxCounter = 3;
+
+  while (counter <= maxCounter) {
+    try {
+      const { data } = await axios({
+        url: "https://odyssey-api.sonic.game/user/transactions/rewards/claim",
+        method: "POST",
+        headers: { ...HEADERS, Authorization: token },
+        data: {
+          stage: counter,
+        },
+      });
+
+      console.log(
+        `[ ${moment().format(
+          "HH:mm:ss"
+        )} ] Daily claim for stage ${counter} has been successful! Stage: ${counter} | Status: ${
+          data.data.claimed
+        }`
+      );
+
+      counter++;
+    } catch (error) {
+      if (error.response.data.message === "interact task not finished") {
+        console.log(
+          `[ ${moment().format(
+            "HH:mm:ss"
+          )} ] Error claiming for stage ${counter}: ${
+            error.response.data.message
+          }`.red
+        );
+        counter++;
+      } else if (
+        error.response &&
+        (error.response.data.code === 100015 ||
+          error.response.data.code === 100016)
+      ) {
+        console.log(
+          `[ ${moment().format(
+            "HH:mm:ss"
+          )} ] Already claimed for stage ${counter}, proceeding to the next stage...`
+            .cyan
+        );
+        counter++;
+      } else {
+        console.log(
+          `[ ${moment().format("HH:mm:ss")} ] Error claiming: ${
+            error.response.data.message
+          }`.red
+        );
+      }
+    }
+  }
+
+  console.log(`All stages processed or max stage reached.`.green);
+}
+
+async function dailyLogin(token, keypair, retries = 3) {
+  try {
+    const { data } = await axios({
+      url: "https://odyssey-api-beta.sonic.game/user/check-in/transaction",
+      method: "GET",
+      headers: { ...HEADERS, Authorization: token },
+    });
+
+    const txBuffer = Buffer.from(data.data.hash, "base64");
+    const tx = solana.Transaction.from(txBuffer);
+    tx.partialSign(keypair);
+    const signature = await doTransactions(tx, keypair);
+
+    const response = await axios({
+      url: "https://odyssey-api-beta.sonic.game/user/check-in",
+      method: "POST",
+      headers: { ...HEADERS, Authorization: token },
+      data: {
+        hash: signature,
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    if (error.response.data.message === "current account already checked in") {
+      console.log(
+        `[ ${moment().format("HH:mm:ss")} ] Error in daily login: ${
+          error.response.data.message
+        }`.red
+      );
+    } else {
+      console.log(
+        `[ ${moment().format("HH:mm:ss")} ] Error claiming: ${
+          error.response.data.message
+        }`.red
+      );
+    }
+  }
+}
+
+(async () => {
+  try {
+    displayHeader();
+    for (let i = 0; i < PRIVATE_KEYS.length; i++) {
+      const privateKey = PRIVATE_KEYS[i];
+      const token = await getToken(privateKey);
+      const keypair = getKeypair(privateKey);
+
+      let profile = await getProfile(token);
+      let availableBoxes = profile.ring_monitor;
+
+      console.log(`Processing private key ${i + 1}...`.green);
+
+      // Open all available boxes
       while (availableBoxes > 0) {
         console.log(
           `[ ${moment().format("HH:mm:ss")} ] Opening box ${
             profile.ring_monitor - availableBoxes + 1
           } of ${profile.ring_monitor}`.yellow
         );
-        const openedBox = await openMysteryBox(token, getKeypair(privateKey));
+        const openedBox = await openMysteryBox(token, keypair);
 
         if (openedBox.data.success) {
           console.log(
@@ -169,33 +353,42 @@ async function processPrivateKey(privateKey) {
 
         availableBoxes--;
 
-        // Cập nhật profile sau khi mở
-        if (availableBoxes > 0) {
-          profile = await getProfile(token); // profile được cập nhật lại
-          availableBoxes = profile.ring_monitor; // Cập nhật lại số box còn lại
-        }
+        // Update profile to check remaining boxes
+        profile = await getProfile(token);
       }
 
-      console.log(`All boxes opened for ${publicKey}.`.cyan);
-    } else {
-      console.log(`Insufficient balance for wallet: ${publicKey}.`.red);
-    }
-  } catch (error) {
-    console.log(`Error processing private key: ${error}`.red);
-  }
-  console.log("");
-}
+      console.log(`All boxes opened for private key ${i + 1}.`.cyan);
 
-(async () => {
-  try {
-    displayHeader();
-    for (let i = 0; i < PRIVATE_KEYS.length; i++) {
-      const privateKey = PRIVATE_KEYS[i];
-      console.log(`Processing private key ${i + 1}...`.green);
-      await processPrivateKey(privateKey);
+      // Perform daily check-in
+      console.log(
+        `[ ${moment().format("HH:mm:ss")} ] Performing daily check-in...`.yellow
+      );
+      const checkinResponse = await dailyLogin(token, keypair);
+
+      if (checkinResponse && checkinResponse.data.success) {
+        console.log(
+          `[ ${moment().format(
+            "HH:mm:ss"
+          )} ] Daily check-in successful! Status: ${
+            checkinResponse.status
+          } | Accumulative Days: ${checkinResponse.data.accumulative_days}`
+            .green
+        );
+      } else {
+        console.log(
+          `[ ${moment().format(
+            "HH:mm:ss"
+          )} ] Daily check-in failed or already completed.`.red
+        );
+      }
+
+      console.log(`Daily check-in completed for private key ${i + 1}.`.cyan);
     }
 
-    console.log("All private keys processed, all boxes opened.".cyan);
+    console.log(
+      "All private keys processed, all boxes opened, and daily check-ins completed."
+        .cyan
+    );
   } catch (error) {
     console.log(`Error in bot operation: ${error}`.red);
   } finally {
